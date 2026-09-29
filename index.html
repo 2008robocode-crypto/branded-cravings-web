@@ -105,18 +105,12 @@
         </div>
       </div>
 
-      <!-- Live Status & Admin Button -->
+      <!-- Live Status -->
       <div class="flex items-center gap-2">
-        <!-- Live Status Pill -->
         <div id="store-status-pill" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
           <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
           <span id="store-status-text">Open Now</span>
         </div>
-
-        <!-- Kitchen Dashboard Toggle Button -->
-        <button id="btn-open-admin" title="Kitchen Dashboard / Stock Manager" class="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors">
-          <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-        </button>
       </div>
 
     </div>
@@ -176,10 +170,9 @@
         <h3 class="text-lg font-bold text-zinc-900" id="current-category-title">All Cravings</h3>
         <p class="text-xs text-zinc-500 font-medium">Prepared hot & fresh in Uniworld Hostel</p>
       </div>
-      <div class="text-xs text-zinc-400 flex items-center gap-1">
-        <span id="sheet-sync-status" class="flex items-center gap-1 text-emerald-600 font-medium">
-          <i data-lucide="check" class="w-3.5 h-3.5"></i> Ready
-        </span>
+      <div class="text-xs text-craving-600 font-bold flex items-center gap-1 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200/60">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span>Fresh & Hot</span>
       </div>
     </div>
 
@@ -516,7 +509,6 @@
       <div class="flex border-b border-zinc-100 bg-zinc-50 px-6 text-xs font-bold">
         <button id="admin-tab-stock-btn" class="py-3 px-4 text-craving-600 border-b-2 border-craving-500">Live Stock Toggles</button>
         <button id="admin-tab-orders-btn" class="py-3 px-4 text-zinc-500 hover:text-zinc-800">Incoming Orders (<span id="admin-orders-count">0</span>)</button>
-        <button id="admin-tab-config-btn" class="py-3 px-4 text-zinc-500 hover:text-zinc-800">Google Sheet & UPI Setup</button>
       </div>
 
       <!-- Admin Tab 1: Live Stock Toggles -->
@@ -539,54 +531,6 @@
         <div id="admin-orders-feed" class="space-y-3">
           <!-- Dynamically populated orders -->
         </div>
-      </div>
-
-      <!-- Admin Tab 3: Google Sheet & Config -->
-      <div id="admin-tab-config" class="p-6 overflow-y-auto space-y-4 flex-1 hidden text-xs">
-        
-        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-900 space-y-1">
-          <div class="font-bold flex items-center gap-1.5">
-            <i data-lucide="info" class="w-4 h-4 text-amber-600"></i>
-            <span>How Google Sheet Sync Works</span>
-          </div>
-          <p class="text-amber-800/90 text-[11px] leading-relaxed">
-            Your website can read menu items & stock live from Google Sheets, and automatically log new orders there. Simply deploy the included <code>google-apps-script.js</code> code as a Web App in Google Sheets and paste your Web App URL below.
-          </p>
-        </div>
-
-        <div>
-          <label class="block font-bold text-zinc-700 mb-1">Google Apps Script Web App URL</label>
-          <input type="url" id="config-sheet-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-craving-500">
-          <p class="text-[10px] text-zinc-400 mt-1">Leave empty to use built-in local stock management.</p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block font-bold text-zinc-700 mb-1">Merchant UPI ID (For Dynamic QR)</label>
-            <input type="text" id="config-upi-id" placeholder="brandedcravings@upi" value="brandedcravings@upi" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-craving-500">
-          </div>
-          <div>
-            <label class="block font-bold text-zinc-700 mb-1">Kitchen WhatsApp Number (For pings)</label>
-            <input type="tel" id="config-whatsapp-num" placeholder="919876543210 (with country code)" value="919876543210" class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-xs focus:outline-none focus:border-craving-500">
-          </div>
-        </div>
-
-        <div class="pt-2">
-          <label class="block font-bold text-zinc-700 mb-1">Store Status Override</label>
-          <div class="flex items-center gap-3">
-            <label class="inline-flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="config-store-open" checked class="w-4 h-4 text-craving-500 rounded">
-              <span class="font-medium text-zinc-800">Kitchen is Currently Open for Orders</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="pt-3 border-t border-zinc-100 flex justify-end">
-          <button id="btn-save-config" class="bg-craving-500 hover:bg-craving-600 text-white font-bold py-2.5 px-5 rounded-xl transition-all shadow-sm">
-            Save Settings
-          </button>
-        </div>
-
       </div>
 
     </div>

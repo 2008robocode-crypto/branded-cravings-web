@@ -121,7 +121,8 @@ const STATE = {
     upiId: localStorage.getItem('bc_upi_id') || 'brandedcravings@upi',
     whatsappNum: localStorage.getItem('bc_whatsapp') || '919876543210',
     storeOpen: localStorage.getItem('bc_store_open') !== 'false',
-    deliveryFee: 0
+    deliveryFee: 0,
+    adminPin: '1234'
   },
   orders: JSON.parse(localStorage.getItem('bc_orders') || '[]'),
   stockOverrides: JSON.parse(localStorage.getItem('bc_stock_overrides') || '{}')
@@ -742,7 +743,6 @@ async function syncWithGoogleSheets() {
 function openAdminModal() {
   renderAdminStockToggles();
   updateAdminOrdersFeed();
-  loadAdminConfig();
   document.getElementById('admin-modal').classList.remove('hidden');
   initLucide();
 }
@@ -836,11 +836,14 @@ function updateAdminOrdersFeed() {
   initLucide();
 }
 
-function loadAdminConfig() {
-  document.getElementById('config-sheet-url').value = STATE.config.sheetUrl;
-  document.getElementById('config-upi-id').value = STATE.config.upiId;
-  document.getElementById('config-whatsapp-num').value = STATE.config.whatsappNum;
-  document.getElementById('config-store-open').checked = STATE.config.storeOpen;
+// --- SECURE KITCHEN ACCESS (PIN PROTECTED) ---
+function verifyAndOpenAdmin() {
+  const pin = prompt("🔒 Kitchen Staff Access - Enter PIN (Default: 1234):");
+  if (pin === (STATE.config.adminPin || "1234")) {
+    openAdminModal();
+  } else if (pin !== null) {
+    alert("Incorrect PIN! Access denied.");
+  }
 }
 
 // --- EVENT LISTENERS SETUP ---
@@ -914,9 +917,37 @@ function setupEventListeners() {
     document.getElementById('order-success-modal').classList.add('hidden');
   });
 
-  // Admin Modal Triggers
-  document.getElementById('btn-open-admin').addEventListener('click', openAdminModal);
+  // Close Admin Modal
   document.getElementById('btn-close-admin').addEventListener('click', closeAdminModal);
+
+  // Hidden / Protected Kitchen Trigger: Triple-click the logo or use #kitchen URL hash
+  let logoClicks = 0;
+  let logoTimer = null;
+  const brandTitle = document.querySelector('header h1');
+  if (brandTitle) {
+    brandTitle.style.cursor = 'pointer';
+    brandTitle.addEventListener('click', () => {
+      logoClicks++;
+      clearTimeout(logoTimer);
+      logoTimer = setTimeout(() => { logoClicks = 0; }, 800);
+      if (logoClicks >= 3) {
+        logoClicks = 0;
+        verifyAndOpenAdmin();
+      }
+    });
+  }
+
+  // Check URL hash for #kitchen
+  window.addEventListener('hashchange', () => {
+    if (window.location.hash === '#kitchen') {
+      window.location.hash = '';
+      verifyAndOpenAdmin();
+    }
+  });
+  if (window.location.hash === '#kitchen') {
+    window.location.hash = '';
+    verifyAndOpenAdmin();
+  }
 
   // Admin Tabs
   document.getElementById('admin-tab-stock-btn').addEventListener('click', (e) => {
@@ -924,33 +955,6 @@ function setupEventListeners() {
   });
   document.getElementById('admin-tab-orders-btn').addEventListener('click', (e) => {
     switchAdminTab('orders', e.target);
-  });
-  document.getElementById('admin-tab-config-btn').addEventListener('click', (e) => {
-    switchAdminTab('config', e.target);
-  });
-
-  // Admin Config Save
-  document.getElementById('btn-save-config').addEventListener('click', () => {
-    const sheetUrl = document.getElementById('config-sheet-url').value.trim();
-    const upiId = document.getElementById('config-upi-id').value.trim();
-    const whatsappNum = document.getElementById('config-whatsapp-num').value.trim();
-    const storeOpen = document.getElementById('config-store-open').checked;
-
-    STATE.config.sheetUrl = sheetUrl;
-    STATE.config.upiId = upiId || 'brandedcravings@upi';
-    STATE.config.whatsappNum = whatsappNum || '919876543210';
-    STATE.config.storeOpen = storeOpen;
-
-    localStorage.setItem('bc_sheet_url', sheetUrl);
-    localStorage.setItem('bc_upi_id', STATE.config.upiId);
-    localStorage.setItem('bc_whatsapp', STATE.config.whatsappNum);
-    localStorage.setItem('bc_store_open', storeOpen);
-
-    updateStoreStatus();
-    renderMenu();
-    closeAdminModal();
-    alert("Settings saved successfully!");
-    syncWithGoogleSheets();
   });
 
   // Reset Stock Overrides
@@ -972,12 +976,15 @@ function setupEventListeners() {
 }
 
 function switchAdminTab(tabName, clickedBtn) {
-  const tabs = ['stock', 'orders', 'config'];
+  const tabs = ['stock', 'orders'];
   tabs.forEach(t => {
-    document.getElementById(`admin-tab-${t}`).classList.add('hidden');
-    document.getElementById(`admin-tab-${t}-btn`).className = 'py-3 px-4 text-zinc-500 hover:text-zinc-800';
+    const tabEl = document.getElementById(`admin-tab-${t}`);
+    const btnEl = document.getElementById(`admin-tab-${t}-btn`);
+    if (tabEl) tabEl.classList.add('hidden');
+    if (btnEl) btnEl.className = 'py-3 px-4 text-zinc-500 hover:text-zinc-800';
   });
 
-  document.getElementById(`admin-tab-${tabName}`).classList.remove('hidden');
-  clickedBtn.className = 'py-3 px-4 text-craving-600 border-b-2 border-craving-500 font-bold';
+  const activeTab = document.getElementById(`admin-tab-${tabName}`);
+  if (activeTab) activeTab.classList.remove('hidden');
+  if (clickedBtn) clickedBtn.className = 'py-3 px-4 text-craving-600 border-b-2 border-craving-500 font-bold';
 }
