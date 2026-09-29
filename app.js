@@ -118,8 +118,8 @@ const STATE = {
   selectedVariant: null,
   config: {
     sheetUrl: localStorage.getItem('bc_sheet_url') || '',
-    upiId: localStorage.getItem('bc_upi_id') || 'brandedcravings@upi',
-    whatsappNum: localStorage.getItem('bc_whatsapp') || '919876543210',
+    upiId: localStorage.getItem('bc_upi_id') || '7014226233@fam',
+    whatsappNum: localStorage.getItem('bc_whatsapp') || '917014226233',
     storeOpen: localStorage.getItem('bc_store_open') !== 'false',
     deliveryFee: 0,
     adminPin: '1234'
