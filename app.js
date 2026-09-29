@@ -595,7 +595,7 @@ async function submitOrder() {
       await fetch(STATE.config.sheetUrl, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'addOrder', order: orderData })
       });
       console.log("Order logged to Google Sheet");
@@ -694,6 +694,13 @@ async function syncWithGoogleSheets() {
         syncStatusEl.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-600"><i data-lucide="cloud-check" class="w-3.5 h-3.5"></i> Sheet Synced</span>`;
         initLucide();
       }
+    }
+
+    // Sync Store Open/Closed status from Config sheet
+    if (data && data.config && data.config.STORE_OPEN !== undefined) {
+      STATE.config.storeOpen = String(data.config.STORE_OPEN).trim().toUpperCase() === "TRUE";
+      updateStoreStatus();
+      renderMenu();
     }
   } catch (err) {
     console.warn("Could not fetch live Google Sheet (using local data):", err);

@@ -109,9 +109,24 @@ function doGet(e) {
       }
     }
 
+    // Read Config Sheet (STORE_OPEN, etc.)
+    var config = {};
+    var configSheet = ss.getSheetByName("Config");
+    if (configSheet) {
+      var configData = configSheet.getDataRange().getValues();
+      for (var j = 1; j < configData.length; j++) {
+        var key = String(configData[j][0]).trim();
+        var val = String(configData[j][1]).trim();
+        if (key) {
+          config[key] = val;
+        }
+      }
+    }
+
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      menu: items
+      menu: items,
+      config: config
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
