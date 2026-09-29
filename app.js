@@ -118,6 +118,7 @@ const STATE = {
   selectedVariant: null,
   config: {
     sheetUrl: 'https://script.google.com/macros/s/AKfycbyTpkhbl-BHMvCTi5HzA4Cjos22IKTxsJa57wARRz2ZyIAECdUge6oPepm3SNdBkYkTQw/exec',
+    apiKey: 'bc_sec_9f82d17c4e5b', // Authentication token for private backend
     upiId: '7014226233@fam',
     whatsappNum: '917014226233',
     storeOpen: localStorage.getItem('bc_store_open') !== 'false',
@@ -527,6 +528,23 @@ function updateCheckoutTotals() {
 
 // --- SUBMIT ORDER & GOOGLE SHEETS SYNC ---
 async function submitOrder() {
+  // 1. Anti-Bot Honeypot Security Check
+  const botField = document.getElementById('input-security-hp');
+  if (botField && botField.value) {
+    console.warn("Automated bot submission blocked by honeypot");
+    return;
+  }
+
+  // 2. Client-Side Rate Limiter (45s Cooldown between orders)
+  const lastOrderEpoch = Number(localStorage.getItem('bc_last_order_epoch') || 0);
+  const nowEpoch = Date.now();
+  const cooldownSec = 45;
+  if (nowEpoch - lastOrderEpoch < cooldownSec * 1000) {
+    const remaining = Math.ceil((cooldownSec * 1000 - (nowEpoch - lastOrderEpoch)) / 1000);
+    alert(`⏳ Order Cooldown: Please wait ${remaining}s before submitting another order.`);
+    return;
+  }
+
   const nameInput = document.getElementById('input-customer-name');
   const phoneInput = document.getElementById('input-customer-phone');
   const roomInput = document.getElementById('input-room-no');
@@ -587,27 +605,30 @@ async function submitOrder() {
   // 2. Save order locally in state & localStorage
   STATE.orders.unshift(orderData);
   localStorage.setItem('bc_orders', JSON.stringify(STATE.orders));
+  localStorage.setItem('bc_last_order_epoch', String(Date.now())); // Mark cooldown
   updateAdminOrdersFeed();
 
-  // 3. Post to Google Sheets if Web App URL is configured (Dual transport for 100% reliability)
+  // 3. Post to Google Sheets with Authentication & Rate Limit parameters
   if (STATE.config.sheetUrl) {
     try {
       const orderParam = encodeURIComponent(JSON.stringify(orderData));
+      const keyParam = encodeURIComponent(STATE.config.apiKey);
+      const phoneParam = encodeURIComponent(orderData.customerPhone);
 
-      // Method A: Fast GET webhook (bypasses all browser CORS/redirect quirks)
-      fetch(`${STATE.config.sheetUrl}?action=addOrder&data=${orderParam}`, {
+      // Method A: Authenticated GET webhook with phone for server-side rate limit tracking
+      fetch(`${STATE.config.sheetUrl}?action=addOrder&apiKey=${keyParam}&phone=${phoneParam}&data=${orderParam}`, {
         mode: 'no-cors'
       }).catch(e => console.warn("GET sync attempt:", e));
 
-      // Method B: Standard POST webhook
+      // Method B: Authenticated POST webhook
       fetch(STATE.config.sheetUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'addOrder', order: orderData })
+        body: JSON.stringify({ action: 'addOrder', apiKey: STATE.config.apiKey, order: orderData })
       }).catch(e => console.warn("POST sync attempt:", e));
 
-      console.log("Order submitted to Google Sheet!");
+      console.log("Order submitted securely with authentication!");
     } catch (err) {
       console.error("Google Sheet webhook error:", err);
     }
@@ -685,7 +706,8 @@ async function syncWithGoogleSheets() {
       initLucide();
     }
 
-    const response = await fetch(`${STATE.config.sheetUrl}?action=getMenu`);
+    const keyParam = encodeURIComponent(STATE.config.apiKey);
+    const response = await fetch(`${STATE.config.sheetUrl}?action=getMenu&apiKey=${keyParam}`);
     const data = await response.json();
 
     if (data && data.menu && Array.isArray(data.menu)) {

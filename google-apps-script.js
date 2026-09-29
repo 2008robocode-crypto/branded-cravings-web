@@ -84,13 +84,79 @@ function setupSheets() {
   }
 }
 
-// GET Request handler (Fetches menu/config OR records orders reliably)
+// =========================================================================
+// SECURITY, AUTHENTICATION & RATE LIMITING LAYER
+// =========================================================================
+var API_SECRET_KEY = "bc_sec_9f82d17c4e5b"; // Private Auth Key - Protects endpoints from public/unauthorized access
+
+// Check if request is authenticated
+function authenticateRequest(e) {
+  var providedKey = "";
+  if (e && e.parameter && e.parameter.apiKey) {
+    providedKey = e.parameter.apiKey;
+  } else if (e && e.postData && e.postData.contents) {
+    try {
+      var body = JSON.parse(e.postData.contents);
+      providedKey = body.apiKey || "";
+    } catch (err) {}
+  }
+  return providedKey === API_SECRET_KEY;
+}
+
+// Rate limiter using Google Apps Script CacheService
+function checkRateLimit(key, maxRequests, windowSeconds) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var cacheKey = "rl_" + key;
+    var count = Number(cache.get(cacheKey) || 0);
+
+    if (count >= maxRequests) {
+      return false; // Rate limit exceeded
+    }
+
+    cache.put(cacheKey, String(count + 1), windowSeconds || 60);
+    return true; // Allowed
+  } catch (err) {
+    return true; // Fail-open if cache is temporarily unavailable
+  }
+}
+
+// GET Request handler (Protected by Auth & Rate Limiter)
 function doGet(e) {
   try {
+    // 1. Authentication Layer
+    if (!authenticateRequest(e)) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        code: 401,
+        message: "Unauthorized: Invalid or missing API key."
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "getMenu";
 
-    // --- A. Handle Adding Order via GET (Bypasses all CORS / redirect issues) ---
+    // 2. Rate Limiting Layer
+    if (action === "addOrder") {
+      var phone = (e && e.parameter && e.parameter.phone) ? e.parameter.phone.trim() : "anon";
+      if (!checkRateLimit("order_" + phone, 3, 60)) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          code: 429,
+          message: "Rate limit reached. Please wait a minute before submitting another order."
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    } else {
+      if (!checkRateLimit("menu_fetch", 60, 60)) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          code: 429,
+          message: "Rate limit reached for menu requests. Please wait a moment."
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // --- A. Handle Adding Order via GET ---
     if (action === "addOrder" && e && e.parameter && e.parameter.data) {
       var order = JSON.parse(decodeURIComponent(e.parameter.data));
       var ordersSheet = ss.getSheetByName("Orders") || ss.insertSheet("Orders");
@@ -171,14 +237,33 @@ function doGet(e) {
   }
 }
 
-// POST Request handler (Appends newly placed order)
+// POST Request handler (Protected by Auth & Rate Limiter)
 function doPost(e) {
   try {
+    // 1. Authentication Layer
+    if (!authenticateRequest(e)) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        code: 401,
+        message: "Unauthorized: Invalid or missing API key."
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var contents = JSON.parse(e.postData.contents);
     var action = contents.action;
     var order = contents.order;
 
     if (action === "addOrder" && order) {
+      // 2. Rate Limiting Layer
+      var phone = (order.customerPhone || "anon").trim();
+      if (!checkRateLimit("order_" + phone, 3, 60)) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "error",
+          code: 429,
+          message: "Rate limit reached. Please wait a minute before submitting another order."
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var ordersSheet = ss.getSheetByName("Orders");
 
