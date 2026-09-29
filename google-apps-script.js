@@ -77,7 +77,11 @@ function setupSheets() {
     ss.deleteSheet(defaultSheet1);
   }
 
-  SpreadsheetApp.getUi().alert("✅ Branded Cravings Database Setup Completed Successfully!\nNow click Deploy > New deployment > Web app.");
+  try {
+    SpreadsheetApp.getUi().alert("✅ Branded Cravings Database Setup Completed Successfully!\nNow click Deploy > New deployment > Web app.");
+  } catch (e) {
+    Logger.log("✅ Branded Cravings Database Setup Completed Successfully! Now click Deploy > New deployment > Web app.");
+  }
 }
 
 // GET Request handler (Fetches menu/config OR records orders reliably)
