@@ -80,10 +80,40 @@ function setupSheets() {
   SpreadsheetApp.getUi().alert("✅ Branded Cravings Database Setup Completed Successfully!\nNow click Deploy > New deployment > Web app.");
 }
 
-// GET Request handler (Fetches current menu & stock status)
+// GET Request handler (Fetches menu/config OR records orders reliably)
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "getMenu";
+
+    // --- A. Handle Adding Order via GET (Bypasses all CORS / redirect issues) ---
+    if (action === "addOrder" && e && e.parameter && e.parameter.data) {
+      var order = JSON.parse(decodeURIComponent(e.parameter.data));
+      var ordersSheet = ss.getSheetByName("Orders") || ss.insertSheet("Orders");
+      
+      ordersSheet.appendRow([
+        order.timestamp || new Date().toLocaleString(),
+        order.orderId || "",
+        order.customerName || "",
+        order.customerPhone || "",
+        order.hostel || "",
+        order.dropSpot || "",
+        order.roomNo || "",
+        order.customNotes || "",
+        order.items || "",
+        order.total || 0,
+        order.paymentMode || "Pay on Delivery",
+        order.utr || "N/A",
+        "New"
+      ]);
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        orderId: order.orderId
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // --- B. Handle getMenu (Reads Menu & Config) ---
     var menuSheet = ss.getSheetByName("Menu");
     
     if (!menuSheet) {
@@ -168,7 +198,7 @@ function doPost(e) {
         order.customNotes || "",
         order.items || "",
         order.total || 0,
-        order.paymentMode || "UPI",
+        order.paymentMode || "Pay on Delivery",
         order.utr || "N/A",
         "New"
       ]);

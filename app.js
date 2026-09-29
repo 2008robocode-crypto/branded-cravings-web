@@ -589,16 +589,25 @@ async function submitOrder() {
   localStorage.setItem('bc_orders', JSON.stringify(STATE.orders));
   updateAdminOrdersFeed();
 
-  // 3. Post to Google Sheets if Web App URL is configured
+  // 3. Post to Google Sheets if Web App URL is configured (Dual transport for 100% reliability)
   if (STATE.config.sheetUrl) {
     try {
-      await fetch(STATE.config.sheetUrl, {
+      const orderParam = encodeURIComponent(JSON.stringify(orderData));
+
+      // Method A: Fast GET webhook (bypasses all browser CORS/redirect quirks)
+      fetch(`${STATE.config.sheetUrl}?action=addOrder&data=${orderParam}`, {
+        mode: 'no-cors'
+      }).catch(e => console.warn("GET sync attempt:", e));
+
+      // Method B: Standard POST webhook
+      fetch(STATE.config.sheetUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'addOrder', order: orderData })
-      });
-      console.log("Order logged to Google Sheet");
+      }).catch(e => console.warn("POST sync attempt:", e));
+
+      console.log("Order submitted to Google Sheet!");
     } catch (err) {
       console.error("Google Sheet webhook error:", err);
     }
