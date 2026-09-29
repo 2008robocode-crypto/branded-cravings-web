@@ -117,9 +117,9 @@ const STATE = {
   pendingVariantItem: null,
   selectedVariant: null,
   config: {
-    sheetUrl: localStorage.getItem('bc_sheet_url') || '',
-    upiId: localStorage.getItem('bc_upi_id') || '7014226233@fam',
-    whatsappNum: localStorage.getItem('bc_whatsapp') || '917014226233',
+    sheetUrl: 'https://script.google.com/macros/s/AKfycbyTpkhbl-BHMvCTi5HzA4Cjos22IKTxsJa57wARRz2ZyIAECdUge6oPepm3SNdBkYkTQw/exec',
+    upiId: '7014226233@fam',
+    whatsappNum: '917014226233',
     storeOpen: localStorage.getItem('bc_store_open') !== 'false',
     deliveryFee: 0,
     adminPin: '1234'
