@@ -1,0 +1,178 @@
+/**
+ * =========================================================================
+ * BRANDED CRAVINGS - GOOGLE APPS SCRIPT BACKEND
+ * =========================================================================
+ * 
+ * INSTRUCTIONS TO SET UP IN 2 MINUTES:
+ * 1. Open Google Sheets (https://sheets.new)
+ * 2. Name your spreadsheet "Branded Cravings Database"
+ * 3. Go to "Extensions" > "Apps Script" in the top menu
+ * 4. Delete any existing code and PASTE THIS ENTIRE FILE into Code.gs
+ * 5. In the top dropdown, select "setupSheets" and click "Run" (Grants permission once)
+ *    -> This will automatically create all tabs, headers, and starter menu items!
+ * 6. Click the blue "Deploy" button (top right) > "New deployment"
+ * 7. Click the gear icon next to "Select type" > choose "Web app"
+ * 8. Set:
+ *    - Description: "Branded Cravings API"
+ *    - Execute as: "Me"
+ *    - Who has access: "Anyone" (crucial so website can read/write without login)
+ * 9. Click "Deploy" and copy the "Web app URL" (ends in /exec)
+ * 10. Open your Branded Cravings website > click the Kitchen icon > paste the URL into "Google Sheet URL" and click Save!
+ * =========================================================================
+ */
+
+function setupSheets() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 1. Setup 'Menu' Sheet
+  var menuSheet = ss.getSheetByName("Menu") || ss.insertSheet("Menu");
+  menuSheet.clear();
+  var menuHeaders = ["Item ID", "Item Name", "Category", "Price (₹)", "In Stock (TRUE/FALSE)", "Details"];
+  menuSheet.appendRow(menuHeaders);
+  menuSheet.getRange(1, 1, 1, menuHeaders.length).setFontWeight("bold").setBackground("#FF5C00").setFontColor("#FFFFFF");
+
+  // Initial Menu from PDF
+  var defaultItems = [
+    ["pizza_10", "10\" Cheese Blast Pizza", "Pizzas", 270, "TRUE", "Cheese blast base, capsicum, onion or classic margherita"],
+    ["burger_crispy_veg", "Crispy Veg Burger", "Burgers & Bites", 60, "TRUE", "Crisp seasoned veg patty, creamy house mayo & fresh toasted buns"],
+    ["midnight_maggi", "Midnight Masala Maggi", "Maggi", 30, "TRUE", "Classic piping hot 2-minute hostel Maggi with authentic spicy masala"],
+    ["regular_7_coke_combo", "Regular 7\" Pizza + Chilled Coke", "Combos", 165, "TRUE", "Personal 7\" fresh pizza with chosen topping + chilled Coca-Cola"],
+    ["regular_7_choco_lava_combo", "Regular 7\" Pizza + Choco Lava Cake", "Combos", 170, "TRUE", "Personal 7\" pizza with chosen topping + molten warm Choco Lava cake"],
+    ["regular_7_solo", "Regular 7\" Pizza (Solo)", "Pizzas", 135, "TRUE", "Individual 7\" crust pizza baked fresh with mozzarella & toppings"]
+  ];
+
+  defaultItems.forEach(function(row) {
+    menuSheet.appendRow(row);
+  });
+  menuSheet.autoResizeColumns(1, menuHeaders.length);
+
+  // 2. Setup 'Orders' Sheet
+  var ordersSheet = ss.getSheetByName("Orders") || ss.insertSheet("Orders");
+  if (ordersSheet.getLastRow() === 0) {
+    var orderHeaders = [
+      "Timestamp", "Order ID", "Customer Name", "Phone", 
+      "Hostel", "Drop Spot", "Room No", "Custom Notes", 
+      "Items Ordered", "Total (₹)", "Payment Mode", "UTR / Ref", "Status"
+    ];
+    ordersSheet.appendRow(orderHeaders);
+    ordersSheet.getRange(1, 1, 1, orderHeaders.length).setFontWeight("bold").setBackground("#18181B").setFontColor("#FFFFFF");
+    ordersSheet.autoResizeColumns(1, orderHeaders.length);
+  }
+
+  // 3. Setup 'Config' Sheet
+  var configSheet = ss.getSheetByName("Config") || ss.insertSheet("Config");
+  if (configSheet.getLastRow() === 0) {
+    var configHeaders = ["Setting Key", "Value", "Description"];
+    configSheet.appendRow(configHeaders);
+    configSheet.getRange(1, 1, 1, configHeaders.length).setFontWeight("bold").setBackground("#3F3F46").setFontColor("#FFFFFF");
+    configSheet.appendRow(["STORE_OPEN", "TRUE", "Set to FALSE to pause orders"]);
+    configSheet.appendRow(["UPI_ID", "brandedcravings@upi", "Your UPI ID for customer QR payments"]);
+    configSheet.appendRow(["DELIVERY_FEE", "0", "Delivery fee in Rupees"]);
+    configSheet.autoResizeColumns(1, configHeaders.length);
+  }
+
+  // Remove default "Sheet1" if present
+  var defaultSheet1 = ss.getSheetByName("Sheet1");
+  if (defaultSheet1 && ss.getSheets().length > 1) {
+    ss.deleteSheet(defaultSheet1);
+  }
+
+  SpreadsheetApp.getUi().alert("✅ Branded Cravings Database Setup Completed Successfully!\nNow click Deploy > New deployment > Web app.");
+}
+
+// GET Request handler (Fetches current menu & stock status)
+function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var menuSheet = ss.getSheetByName("Menu");
+    
+    if (!menuSheet) {
+      return ContentService.createTextOutput(JSON.stringify({ error: "Menu sheet not found. Run setupSheets first." }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var menuData = menuSheet.getDataRange().getValues();
+    var items = [];
+
+    // Skip header row
+    for (var i = 1; i < menuData.length; i++) {
+      var row = menuData[i];
+      if (row[0]) {
+        items.push({
+          id: String(row[0]).trim(),
+          name: String(row[1]).trim(),
+          category: String(row[2]).trim(),
+          price: Number(row[3]),
+          inStock: String(row[4]).trim().toUpperCase() === "TRUE",
+          details: String(row[5] || "")
+        });
+      }
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      menu: items
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// POST Request handler (Appends newly placed order)
+function doPost(e) {
+  try {
+    var contents = JSON.parse(e.postData.contents);
+    var action = contents.action;
+    var order = contents.order;
+
+    if (action === "addOrder" && order) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var ordersSheet = ss.getSheetByName("Orders");
+
+      if (!ordersSheet) {
+        ordersSheet = ss.insertSheet("Orders");
+        ordersSheet.appendRow([
+          "Timestamp", "Order ID", "Customer Name", "Phone", 
+          "Hostel", "Drop Spot", "Room No", "Custom Notes", 
+          "Items Ordered", "Total (₹)", "Payment Mode", "UTR / Ref", "Status"
+        ]);
+      }
+
+      ordersSheet.appendRow([
+        order.timestamp || new Date().toLocaleString(),
+        order.orderId || "",
+        order.customerName || "",
+        order.customerPhone || "",
+        order.hostel || "",
+        order.dropSpot || "",
+        order.roomNo || "",
+        order.customNotes || "",
+        order.items || "",
+        order.total || 0,
+        order.paymentMode || "UPI",
+        order.utr || "N/A",
+        "New"
+      ]);
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        orderId: order.orderId
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: "Invalid action or payload"
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
