@@ -582,11 +582,6 @@ async function submitOrder() {
     phoneInput.focus();
     return;
   }
-  if (!roomSpot) {
-    alert("Please enter your Room number or drop spot details!");
-    roomInput.focus();
-    return;
-  }
 
   const { grandTotal } = getCartTotals();
   const orderId = `BC-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -606,7 +601,7 @@ async function submitOrder() {
     customerPhone,
     hostel: STATE.selectedHostel,
     dropSpot: STATE.selectedSpot,
-    roomNo: roomSpot,
+    roomNo: roomSpot || STATE.selectedSpot,
     customNotes: customNotes || "None",
     items: itemsText,
     total: grandTotal,
@@ -671,16 +666,23 @@ async function submitOrder() {
 // --- ORDER SUCCESS MODAL & PRE-FILLED WHATSAPP PING ---
 function showOrderSuccess(order) {
   document.getElementById('success-order-id').textContent = `#${order.orderId}`;
-  document.getElementById('success-destination').textContent = `${order.hostel} • ${order.dropSpot} (${order.roomNo})`;
+  const destinationDisplay = order.roomNo && order.roomNo !== order.dropSpot
+    ? `${order.hostel} • ${order.dropSpot} (${order.roomNo})`
+    : `${order.hostel} • ${order.dropSpot}`;
+  document.getElementById('success-destination').textContent = destinationDisplay;
   document.getElementById('success-total').textContent = order.total;
 
   // Generate pre-filled WhatsApp message for seller
   const kitchenWhatsApp = STATE.config.whatsappNum || "919876543210";
+  const dropText = order.roomNo && order.roomNo !== order.dropSpot
+    ? `${order.dropSpot} (${order.roomNo})`
+    : order.dropSpot;
+
   const whatsappMsg = `🔥 *NEW ORDER - BRANDED CRAVINGS* 🔥\n` +
     `*Order ID:* #${order.orderId}\n` +
     `*Customer:* ${order.customerName} (${order.customerPhone})\n` +
     `*Destination:* ${order.hostel}\n` +
-    `*Drop Spot:* ${order.dropSpot} - ${order.roomNo}\n` +
+    `*Drop Spot:* ${dropText}\n` +
     (order.customNotes !== "None" ? `*Notes:* ${order.customNotes}\n` : '') +
     `\n*Items Ordered:*\n${order.items.split(', ').map(i => `• ${i}`).join('\n')}\n` +
     `\n*Total Amount:* ₹${order.total}\n` +
@@ -894,6 +896,25 @@ function setupEventListeners() {
       });
       btn.className = 'spot-btn active border-2 border-craving-500 bg-craving-50 text-craving-700 font-bold py-2 px-2 rounded-xl text-xs text-center transition-all';
       STATE.selectedSpot = btn.getAttribute('data-spot');
+
+      // Dynamically adjust the room/spot input label & placeholder
+      const labelText = document.getElementById('label-room-text');
+      const roomInput = document.getElementById('input-room-no');
+      if (labelText && roomInput) {
+        if (STATE.selectedSpot === 'Room Delivery') {
+          labelText.textContent = 'Room Number';
+          roomInput.placeholder = 'e.g. Room 304 (Optional)';
+        } else if (STATE.selectedSpot === 'Rooftop') {
+          labelText.textContent = 'Rooftop Spot';
+          roomInput.placeholder = 'e.g. Near water tank / table 2 (Optional)';
+        } else if (STATE.selectedSpot === 'Common Room / Lobby') {
+          labelText.textContent = 'Common Room Area';
+          roomInput.placeholder = 'e.g. 1st floor TV area (Optional)';
+        } else if (STATE.selectedSpot === 'Main Gate') {
+          labelText.textContent = 'Meeting Spot';
+          roomInput.placeholder = 'e.g. Near security desk (Optional)';
+        }
+      }
     });
   });
 
