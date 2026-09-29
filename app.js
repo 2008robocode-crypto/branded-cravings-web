@@ -113,7 +113,7 @@ const STATE = {
   category: 'all',
   selectedHostel: 'Uniworld Hostel 1',
   selectedSpot: 'Room Delivery',
-  paymentMode: 'UPI',
+  paymentMode: 'Pay on Delivery',
   pendingVariantItem: null,
   selectedVariant: null,
   config: {
@@ -473,7 +473,6 @@ function openCheckoutModal() {
 
   renderCheckoutItems();
   updateCheckoutTotals();
-  refreshUPIQR();
 
   document.getElementById('checkout-modal').classList.remove('hidden');
   initLucide();
@@ -524,38 +523,6 @@ function updateCheckoutTotals() {
   document.getElementById('bill-delivery-fee').textContent = deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`;
   document.getElementById('bill-grand-total').textContent = grandTotal;
   document.getElementById('btn-submit-total').textContent = grandTotal;
-  document.getElementById('upi-amount-display').textContent = grandTotal;
-}
-
-// --- DYNAMIC UPI QR GENERATION ---
-function refreshUPIQR() {
-  const { grandTotal } = getCartTotals();
-  const upiId = STATE.config.upiId || 'brandedcravings@upi';
-  const qrContainer = document.getElementById('qrcode-container');
-  qrContainer.innerHTML = '';
-
-  document.getElementById('display-upi-id').textContent = upiId;
-  document.getElementById('upi-amount-display').textContent = grandTotal;
-
-  // Format standard UPI Deep Link URL
-  const payeeName = "Branded Cravings";
-  const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${grandTotal}&cu=INR&tn=${encodeURIComponent('Hostel Craving Order')}`;
-
-  // Generate dynamic QR Code
-  if (window.QRCode) {
-    new QRCode(qrContainer, {
-      text: upiUrl,
-      width: 140,
-      height: 140,
-      colorDark: "#18181b",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  }
-
-  // Set direct mobile payment link
-  const upiAppLink = document.getElementById('btn-open-upi-app');
-  upiAppLink.href = upiUrl;
 }
 
 // --- SUBMIT ORDER & GOOGLE SHEETS SYNC ---
@@ -564,13 +531,11 @@ async function submitOrder() {
   const phoneInput = document.getElementById('input-customer-phone');
   const roomInput = document.getElementById('input-room-no');
   const notesInput = document.getElementById('input-custom-notes');
-  const utrInput = document.getElementById('input-upi-utr');
 
   const customerName = nameInput.value.trim();
   const customerPhone = phoneInput.value.trim();
   const roomSpot = roomInput.value.trim();
   const customNotes = notesInput.value.trim();
-  const utr = utrInput ? utrInput.value.trim() : '';
 
   if (!customerName) {
     alert("Please enter your name!");
@@ -605,8 +570,8 @@ async function submitOrder() {
     customNotes: customNotes || "None",
     items: itemsText,
     total: grandTotal,
-    paymentMode: STATE.paymentMode,
-    utr: utr || "N/A",
+    paymentMode: "Pay on Delivery",
+    utr: "N/A",
     status: "New"
   };
 
@@ -658,7 +623,6 @@ async function submitOrder() {
   renderMenu();
   roomInput.value = '';
   notesInput.value = '';
-  if (utrInput) utrInput.value = '';
   submitBtn.disabled = false;
   submitBtn.innerHTML = originalBtnText;
 }
@@ -686,8 +650,7 @@ function showOrderSuccess(order) {
     (order.customNotes !== "None" ? `*Notes:* ${order.customNotes}\n` : '') +
     `\n*Items Ordered:*\n${order.items.split(', ').map(i => `• ${i}`).join('\n')}\n` +
     `\n*Total Amount:* ₹${order.total}\n` +
-    `*Payment Mode:* ${order.paymentMode}` +
-    (order.utr !== "N/A" ? ` (UTR: ${order.utr})` : '');
+    `*Payment Mode:* Pay on Delivery (Cash / UPI)\n`;
 
   const whatsappLink = `https://wa.me/${kitchenWhatsApp}?text=${encodeURIComponent(whatsappMsg)}`;
   document.getElementById('btn-whatsapp-ping').href = whatsappLink;
@@ -918,19 +881,6 @@ function setupEventListeners() {
     });
   });
 
-  // Payment Mode Radio Selection
-  document.querySelectorAll('input[name="payment_mode"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      STATE.paymentMode = e.target.value;
-      const upiSection = document.getElementById('upi-payment-details');
-      if (STATE.paymentMode === 'UPI') {
-        upiSection.classList.remove('hidden');
-        refreshUPIQR();
-      } else {
-        upiSection.classList.add('hidden');
-      }
-    });
-  });
 
   // Submit Order Button
   document.getElementById('btn-submit-order').addEventListener('click', submitOrder);
