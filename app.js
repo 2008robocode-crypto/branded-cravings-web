@@ -42,7 +42,14 @@ const INITIAL_MENU = [
     image: "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=600&q=80",
     isVeg: true,
     inStock: true,
-    customizable: false
+    customizable: true,
+    customizableBadge: "Add-on Available",
+    variantTitle: "Customize Your Maggi",
+    variantSubtitle: "Choose your Maggi style or add-on:",
+    variants: [
+      { name: "Classic Masala", desc: "Authentic 2-minute hostel recipe with standard masala", isVeg: true, extraPrice: 0 },
+      { name: "Double Masala Maggi", desc: "Loaded with extra tastemaker masala & intense spicy flavor", isVeg: true, extraPrice: 0 }
+    ]
   },
   {
     id: "regular_7_coke_combo",
@@ -116,6 +123,7 @@ const STATE = {
   paymentMode: 'Pay on Delivery',
   pendingVariantItem: null,
   selectedVariant: null,
+  selectedVariantObj: null,
   config: {
     sheetUrl: 'https://script.google.com/macros/s/AKfycbyTpkhbl-BHMvCTi5HzA4Cjos22IKTxsJa57wARRz2ZyIAECdUge6oPepm3SNdBkYkTQw/exec',
     apiKey: 'bc_sec_9f82d17c4e5b', // Authentication token for private backend
@@ -250,7 +258,7 @@ function renderMenu() {
             ${vegBadge}
             <span class="text-[11px] font-bold tracking-wider text-zinc-500 uppercase">${item.category}</span>
           </div>
-          ${item.customizable ? `<span class="text-[10px] font-bold bg-orange-50 text-craving-600 px-2 py-0.5 rounded-full border border-orange-200/60">Choice of flavor</span>` : ''}
+          ${item.customizable ? `<span class="text-[10px] font-bold bg-orange-50 text-craving-600 px-2 py-0.5 rounded-full border border-orange-200/60">${item.customizableBadge || 'Choice of flavor'}</span>` : ''}
         </div>
 
         <!-- Image & Title layout -->
@@ -328,11 +336,12 @@ window.triggerAddItem = function(itemId) {
 
 function openVariantModal(item) {
   STATE.pendingVariantItem = item;
+  STATE.selectedVariantObj = item.variants[0];
   STATE.selectedVariant = item.variants[0].name; // Default select first option
 
   document.getElementById('variant-modal-title').textContent = item.variantTitle || "Choose Option";
   document.getElementById('variant-modal-subtitle').textContent = item.variantSubtitle || "Select 1 option to complete your order:";
-  document.getElementById('variant-modal-price').textContent = item.price;
+  updateVariantModalPrice();
 
   const listContainer = document.getElementById('variant-options-list');
   listContainer.innerHTML = '';
@@ -348,6 +357,10 @@ function openVariantModal(item) {
       ? `<span class="inline-flex items-center justify-center w-3.5 h-3.5 border-2 border-rose-700 rounded p-0.5"><span class="w-1.5 h-1.5 rounded-full bg-rose-700"></span></span>`
       : `<span class="inline-flex items-center justify-center w-3.5 h-3.5 border-2 border-emerald-600 rounded p-0.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span></span>`;
 
+    const priceTag = (v.extraPrice && v.extraPrice > 0)
+      ? `<span class="text-xs font-bold text-craving-600 bg-craving-50 px-2 py-0.5 rounded-full border border-craving-200">+₹${v.extraPrice}</span>`
+      : `<span class="text-xs font-bold text-zinc-400">Included</span>`;
+
     optionCard.innerHTML = `
       <div class="flex items-center justify-between">
         <div class="flex items-start gap-2.5">
@@ -360,12 +373,14 @@ function openVariantModal(item) {
             ${v.desc ? `<p class="text-xs text-zinc-500 mt-0.5">${v.desc}</p>` : ''}
           </div>
         </div>
-        <span class="text-xs font-bold text-zinc-400">Included</span>
+        ${priceTag}
       </div>
     `;
 
     optionCard.addEventListener('click', () => {
       STATE.selectedVariant = v.name;
+      STATE.selectedVariantObj = v;
+      updateVariantModalPrice();
       // Update visual selection styles
       document.querySelectorAll('#variant-options-list label').forEach(el => {
         el.className = 'cursor-pointer block border-2 rounded-2xl p-3.5 transition-all border-zinc-200 bg-white hover:border-zinc-300';
@@ -380,15 +395,27 @@ function openVariantModal(item) {
   modal.classList.remove('hidden');
 }
 
+function updateVariantModalPrice() {
+  if (!STATE.pendingVariantItem) return;
+  const basePrice = Number(STATE.pendingVariantItem.price) || 0;
+  const extra = (STATE.selectedVariantObj && STATE.selectedVariantObj.extraPrice) ? Number(STATE.selectedVariantObj.extraPrice) : 0;
+  const priceEl = document.getElementById('variant-modal-price');
+  if (priceEl) {
+    priceEl.textContent = basePrice + extra;
+  }
+}
+
 function closeVariantModal() {
   document.getElementById('variant-modal').classList.add('hidden');
   STATE.pendingVariantItem = null;
   STATE.selectedVariant = null;
+  STATE.selectedVariantObj = null;
 }
 
 // --- CART LOGIC ---
-function addToCart(item, variant) {
+function addToCart(item, variant, extraPrice = 0) {
   const cartKey = variant ? `${item.id}_${variant}` : item.id;
+  const unitPrice = (Number(item.price) || 0) + (Number(extraPrice) || 0);
   
   if (STATE.cart[cartKey]) {
     STATE.cart[cartKey].qty += 1;
@@ -396,6 +423,8 @@ function addToCart(item, variant) {
     STATE.cart[cartKey] = {
       item,
       variant,
+      extraPrice: Number(extraPrice) || 0,
+      price: unitPrice,
       qty: 1
     };
   }
@@ -436,8 +465,9 @@ function getCartTotals() {
   let subtotal = 0;
 
   Object.values(STATE.cart).forEach(entry => {
+    const itemPrice = entry.price !== undefined ? entry.price : ((Number(entry.item.price) || 0) + (Number(entry.extraPrice) || 0));
     count += entry.qty;
-    subtotal += entry.qty * entry.item.price;
+    subtotal += entry.qty * itemPrice;
   });
 
   const deliveryFee = STATE.config.deliveryFee || 0;
@@ -491,15 +521,16 @@ function renderCheckoutItems() {
   document.getElementById('checkout-total-items-badge').textContent = `${entries.length} dish${entries.length > 1 ? 'es' : ''}`;
 
   entries.forEach(([key, entry]) => {
-    const itemTotal = entry.qty * entry.item.price;
+    const itemPrice = entry.price !== undefined ? entry.price : ((Number(entry.item.price) || 0) + (Number(entry.extraPrice) || 0));
+    const itemTotal = entry.qty * itemPrice;
     const row = document.createElement('div');
     row.className = 'py-3 flex items-center justify-between gap-3';
 
     row.innerHTML = `
       <div class="flex-1">
         <div class="font-bold text-zinc-900 text-sm leading-snug">${entry.item.name}</div>
-        ${entry.variant ? `<div class="text-[11px] font-semibold text-craving-600">Flavor: ${entry.variant}</div>` : ''}
-        <div class="text-xs text-zinc-400 mt-0.5">₹${entry.item.price} each</div>
+        ${entry.variant ? `<div class="text-[11px] font-semibold text-craving-600">${entry.variant}</div>` : ''}
+        <div class="text-xs text-zinc-400 mt-0.5">₹${itemPrice} each</div>
       </div>
 
       <div class="flex items-center gap-3">
@@ -869,7 +900,8 @@ function setupEventListeners() {
   document.getElementById('btn-close-variant-modal').addEventListener('click', closeVariantModal);
   document.getElementById('btn-confirm-variant').addEventListener('click', () => {
     if (STATE.pendingVariantItem && STATE.selectedVariant) {
-      addToCart(STATE.pendingVariantItem, STATE.selectedVariant);
+      const extra = (STATE.selectedVariantObj && STATE.selectedVariantObj.extraPrice) ? Number(STATE.selectedVariantObj.extraPrice) : 0;
+      addToCart(STATE.pendingVariantItem, STATE.selectedVariant, extra);
       closeVariantModal();
     }
   });
