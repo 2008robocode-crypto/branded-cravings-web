@@ -37,7 +37,7 @@ const INITIAL_MENU = [
     id: "midnight_maggi",
     name: "Midnight Masala Maggi",
     category: "Maggi",
-    price: 30,
+    price: 35,
     details: "Classic piping hot 2-minute hostel Maggi with authentic spicy masala.",
     image: "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=600&q=80",
     isVeg: true,
@@ -48,7 +48,7 @@ const INITIAL_MENU = [
     variantSubtitle: "Choose your Maggi style or add-on:",
     variants: [
       { name: "Classic Masala", desc: "Authentic 2-minute hostel recipe with standard masala", isVeg: true, extraPrice: 0 },
-      { name: "Double Masala Maggi", desc: "Loaded with extra tastemaker masala & intense spicy flavor", isVeg: true, extraPrice: 0 }
+      { name: "Double Masala Maggi", desc: "Loaded with extra tastemaker masala & intense spicy flavor", isVeg: true, extraPrice: 10 }
     ]
   },
   {
