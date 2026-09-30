@@ -26,7 +26,7 @@ const INITIAL_MENU = [
     id: "burger_crispy_veg",
     name: "Crispy Veg Burger",
     category: "Burgers & Bites",
-    price: 60,
+    price: 65,
     details: "Crisp seasoned veg patty, creamy house mayo & fresh toasted buns.",
     image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80",
     isVeg: true,
