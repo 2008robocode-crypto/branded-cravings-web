@@ -52,6 +52,28 @@ const INITIAL_MENU = [
     ]
   },
   {
+    id: "oreo_shake",
+    name: "Oreo Shake",
+    category: "Shakes",
+    price: 69,
+    details: "Thick & creamy chocolate vanilla milkshake loaded with crushed Oreo cookies.",
+    image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80",
+    isVeg: true,
+    inStock: true,
+    customizable: false
+  },
+  {
+    id: "cold_coffee_protein_shake",
+    name: "Cold Coffee Protein Shake",
+    category: "Shakes",
+    price: 145,
+    details: "Chilled rich espresso brew blended with premium whey protein. Ideal late-night fitness fuel.",
+    image: "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=600&q=80",
+    isVeg: true,
+    inStock: true,
+    customizable: false
+  },
+  {
     id: "regular_7_coke_combo",
     name: "Regular 7\" Pizza + Chilled Coke",
     category: "Combos",

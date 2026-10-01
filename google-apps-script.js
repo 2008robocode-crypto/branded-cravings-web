@@ -34,8 +34,10 @@ function setupSheets() {
   // Initial Menu from PDF
   var defaultItems = [
     ["pizza_10", "10\" Cheese Blast Pizza", "Pizzas", 270, "TRUE", "Cheese blast base, capsicum, onion or classic margherita"],
-    ["burger_crispy_veg", "Crispy Veg Burger", "Burgers & Bites", 60, "TRUE", "Crisp seasoned veg patty, creamy house mayo & fresh toasted buns"],
+    ["burger_crispy_veg", "Crispy Veg Burger", "Burgers & Bites", 65, "TRUE", "Crisp seasoned veg patty, creamy house mayo & fresh toasted buns"],
     ["midnight_maggi", "Midnight Masala Maggi", "Maggi", 35, "TRUE", "Classic piping hot 2-minute hostel Maggi with authentic spicy masala"],
+    ["oreo_shake", "Oreo Shake", "Shakes", 69, "TRUE", "Thick & creamy chocolate vanilla milkshake loaded with crushed Oreo cookies"],
+    ["cold_coffee_protein_shake", "Cold Coffee Protein Shake", "Shakes", 145, "TRUE", "Chilled rich espresso brew blended with premium whey protein. Ideal late-night fitness fuel"],
     ["regular_7_coke_combo", "Regular 7\" Pizza + Chilled Coke", "Combos", 165, "TRUE", "Personal 7\" fresh pizza with chosen topping + chilled Coca-Cola"],
     ["regular_7_choco_lava_combo", "Regular 7\" Pizza + Choco Lava Cake", "Combos", 170, "TRUE", "Personal 7\" pizza with chosen topping + molten warm Choco Lava cake"],
     ["regular_7_solo", "Regular 7\" Pizza (Solo)", "Pizzas", 135, "TRUE", "Individual 7\" crust pizza baked fresh with mozzarella & toppings"]
