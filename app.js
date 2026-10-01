@@ -11,7 +11,7 @@ const INITIAL_MENU = [
     category: "Pizzas",
     price: 270,
     details: "Cheese blast base, capsicum, onion or classic margherita style.",
-    image: "https://unsplash.com/photos/Nq9KlQTTEbQ?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1613564834361-9436948817d1?auto=format&fit=crop&w=600&q=80",
     isVeg: true,
     inStock: true,
     customizable: true,
@@ -252,6 +252,18 @@ function renderMenu() {
   const filtered = STATE.category === 'all' 
     ? STATE.menu 
     : STATE.menu.filter(m => m.category.toLowerCase().includes(STATE.category.toLowerCase()));
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-full py-16 text-center text-zinc-400 space-y-2">
+        <i data-lucide="coffee" class="w-10 h-10 mx-auto opacity-40"></i>
+        <p class="text-sm font-semibold text-zinc-500">No items available in this category right now</p>
+        <p class="text-xs text-zinc-400">Select "All Cravings" to browse the full kitchen menu.</p>
+      </div>
+    `;
+    initLucide();
+    return;
+  }
 
   filtered.forEach(item => {
     const card = document.createElement('div');
@@ -770,6 +782,23 @@ async function syncWithGoogleSheets() {
         if (local) {
           if (sheetItem.hasOwnProperty('inStock')) local.inStock = sheetItem.inStock === true || sheetItem.inStock === "TRUE";
           if (sheetItem.price) local.price = Number(sheetItem.price);
+        } else {
+          // If item exists in Google Sheets but not yet in local state (e.g. cache lag or newly added)
+          const defaultImages = {
+            'oreo_shake': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80',
+            'cold_coffee_protein_shake': 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=600&q=80'
+          };
+          STATE.menu.push({
+            id: sheetItem.id,
+            name: sheetItem.name,
+            category: sheetItem.category || "Cravings",
+            price: Number(sheetItem.price) || 0,
+            details: sheetItem.details || "",
+            image: defaultImages[sheetItem.id] || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+            isVeg: true,
+            inStock: sheetItem.hasOwnProperty('inStock') ? (sheetItem.inStock === true || sheetItem.inStock === "TRUE") : true,
+            customizable: false
+          });
         }
       });
 
