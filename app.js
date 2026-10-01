@@ -11,7 +11,7 @@ const INITIAL_MENU = [
     category: "Pizzas",
     price: 270,
     details: "Cheese blast base, capsicum, onion or classic margherita style.",
-    image: "https://lh3.googleusercontent.com/grass-proxy/AIM7gW2t7gjyZEVyyOI7zxxTK4wnrHkNFX1FTK9Gde0aSffHMK67nLcQNWyPe75k-ZHoDRpEyxgbW-06egnuYiKclMwScmk3aZTQvTmYlZS8sBKItDyamkZgqqD1AxFUb535x1-c7fxyccI0XclidU6abUrC4AgFClKllpi68jBH-h4x2iWOPHQVANaewA=w114-h114-n-k-no?auto=format&fit=crop&w=600&q=80",
+    image: "https://unsplash.com/photos/pizza-on-brown-wooden-round-tray-Nq9KlQTTEbQ?auto=format&fit=crop&w=600&q=80",
     isVeg: true,
     inStock: true,
     customizable: true,
